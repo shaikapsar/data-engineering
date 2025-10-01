@@ -1,0 +1,34 @@
+name: Local Agent
+version: 1.0.0
+schema: v1
+models:
+  - name: Llama 3.1 8B
+    provider: ollama
+    model: llama3.1:8b
+    apiBase: http://host.docker.internal:11434
+    roles:
+      - chat
+      - edit
+      - apply
+  - name: Qwen2.5-Coder 1.5B
+    provider: ollama
+    model: qwen2.5-coder:1.5b-base
+    apiBase: http://host.docker.internal:11434
+    roles:
+      - autocomplete
+  - name: Nomic Embed
+    provider: ollama
+    model: nomic-embed-text:latest
+    apiBase: http://host.docker.internal:11434
+    roles:
+      - embed
+  - name: Autodetect
+    provider: ollama
+    model: AUTODETECT
+    apiBase: http://host.docker.internal:11434
+    roles:
+      - chat
+      - edit
+      - apply
+      - rerank
+      - autocomplete

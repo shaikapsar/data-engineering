@@ -1,0 +1,108 @@
+version: "3.9"
+
+services:
+  spark-master:
+    image: jupyter/pyspark-notebook:spark-3.5.0
+    container_name: spark-master
+    command: ["/usr/local/spark/bin/spark-class", "org.apache.spark.deploy.master.Master", "-h", "spark-master"]
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - SPARK_OPTS=--webui-port 8080
+      - SPARK_PUBLIC_DNS=host.docker.internal
+      - SPARK_LOCAL_DIRS=/home/jovyan/spark-master
+    networks:
+      - spark-network
+    volumes:
+      - ./spark-master:/home/jovyan/spark-master
+      - ../data:/home/jovyan/data:cached
+
+  spark-worker-1:
+    image: jupyter/pyspark-notebook:spark-3.5.0
+    container_name: spark-worker-1
+    command: ["/usr/local/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_WORKER_DIR=/home/jovyan/spark-worker-1
+      - SPARK_PUBLIC_DNS=host.docker.internal
+      - SPARK_WORKER_WEBUI_ADDRESS=host.docker.internal
+    volumes:
+      - ../spark-worker-1:/home/jovyan/spark-worker-1
+      - ../data:/home/jovyan/data:cached
+    networks:
+      - spark-network
+
+  spark-worker-2:
+    image: jupyter/pyspark-notebook:spark-3.5.0
+    container_name: spark-worker-2
+    command: ["/usr/local/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8081"
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_WORKER_DIR=/home/jovyan/spark-worker-2
+      - SPARK_PUBLIC_DNS=host.docker.internal
+      - SPARK_WORKER_WEBUI_ADDRESS=host.docker.internal
+    volumes:
+      - ../spark-worker-2:/home/jovyan/spark-worker-2
+      - ../data:/home/jovyan/data:cached
+    networks:
+      - spark-network
+
+  jupyterlab:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyterlab
+    container_name: jupyterlab
+    depends_on:
+      - spark-master
+      - spark-worker-1
+      - spark-worker-2
+      - postgres
+    ports:
+      - "8888:8888"
+    command: start-notebook.sh --NotebookApp.token=''
+    volumes:
+      - ../notebooks:/home/jovyan/work:cached
+      - ../data:/home/jovyan/data:cached
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_DRIVER_HOST=jupyterlab
+      - JUPYTER_ENABLE_LAB=yes
+      - PYSPARK_PYTHON=python3
+      - PYSPARK_PYTHON=/opt/conda/bin/python
+      - SPARK_PUBLIC_DNS=host.docker.internal
+    networks:
+      - spark-network
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=dev
+      - POSTGRES_PASSWORD=dev
+      - POSTGRES_DB=elearning
+      - SPARK_PUBLIC_DNS=host.docker.internal
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - spark-network
+
+volumes:
+  pgdata:
+
+networks:
+  spark-network:
+    driver: bridge
