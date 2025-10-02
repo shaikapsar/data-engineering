@@ -7,15 +7,6 @@ RUN apt-get update && \
     apt-get install -y iputils-ping netcat-openbsd && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create a directory for startup scripts if it doesn't exist
-RUN mkdir -p /usr/local/bin/startup_scripts/
-
-# Copy the permission fixing script
-COPY fix-permissions.sh /usr/local/bin/startup_scripts/fix-permissions.sh
-
-# Make the script executable
-RUN chmod +x /usr/local/bin/startup_scripts/fix-permissions.sh
-
 # Install psycopg2 and delta-spark
 USER $NB_UID
 RUN mamba install -y psycopg2 && \
